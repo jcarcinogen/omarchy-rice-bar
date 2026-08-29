@@ -23,6 +23,16 @@ It keeps `omarchy.bar` active and leaves Omarchy's official logo, workspaces, in
 
 All Rice Bar styles bind to Omarchy's active `Color.bar.background`, `Color.bar.text`, and `Color.accent` roles. Rice Bar does not ship a separate color theme.
 
+## Examples
+
+![Islands on a green city theme](examples/islands-green.png)
+
+![Islands on a warm abstract theme](examples/islands-orange.png)
+
+![Minimal on a light theme](examples/minimal-light.png)
+
+![Pills on a dark sketch theme](examples/pills-dark.png)
+
 ## Install
 
 ```bash
