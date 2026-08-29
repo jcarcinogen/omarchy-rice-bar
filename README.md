@@ -25,8 +25,6 @@ All Rice Bar styles bind to Omarchy's active `Color.bar.background`, `Color.bar.
 
 ## Examples
 
-![Rice Bar settings](examples/settings.png)
-
 ![Islands on a green city theme](examples/islands-green.png)
 
 ![Islands on a warm abstract theme](examples/islands-orange.png)
