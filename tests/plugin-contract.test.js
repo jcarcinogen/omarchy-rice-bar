@@ -56,9 +56,13 @@ test('visible settings control participates in Rice Bar surface geometry', () =>
   assert.doesNotMatch(service, /(?:pillRects|islandRects)\([^\n]*pluginId/);
 });
 
-test('settings control uses an appearance icon and never replaces Omarchy branding', () => {
+test('settings control uses the rice-bowl glyph and never replaces Omarchy branding', () => {
+  const rice = '\u{F07EA}';
   const widget = source('BarWidget.qml');
+  const panel = source('RicePanel.qml');
   assert.match(widget, /BarIconButton/);
+  assert.match(widget, new RegExp(rice));
+  assert.match(panel, new RegExp(rice));
   assert.doesNotMatch(widget, /text:\s*["'](?:OMARCHY|Omarchy)["']/);
   assert.doesNotMatch(widget, /moduleName:\s*["']omarchy\./);
 });

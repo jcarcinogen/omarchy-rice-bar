@@ -29,7 +29,7 @@ All Rice Bar styles bind to Omarchy's active `Color.bar.background`, `Color.bar.
 omarchy plugin add https://github.com/jcarcinogen/omarchy-rice-bar.git --enable --yes
 ```
 
-The palette button is added to the right section. Select it to open Rice Bar settings.
+The rice-bowl button is added to the right section. Select it to open Rice Bar settings.
 
 ## Configure
 

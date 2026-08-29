@@ -68,13 +68,13 @@ Panel {
             detail: root.live.preset === "omarchy" ? "Default" : root.live.preset
             foreground: root.foreground
             fontFamily: root.fontFamily
-            iconComponent: paletteIcon
+            iconComponent: riceIcon
           }
 
           Component {
-            id: paletteIcon
+            id: riceIcon
             Text {
-              text: "󰏘"
+              text: "󰟪"
               color: root.foreground
               font.family: root.fontFamily
               font.pixelSize: Style.font.display

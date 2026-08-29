@@ -46,7 +46,7 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: "󰏘"
+    text: "󰟪"
     tooltipText: root.opened ? "Close Rice Bar styles" : "Rice Bar styles"
     onPressed: function(mouseButton) {
       if (mouseButton === Qt.LeftButton) root.togglePanel()
