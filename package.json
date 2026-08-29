@@ -1,0 +1,12 @@
+{
+  "name": "omarchy-rice-bar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tests for the Rice Bar Omarchy plugin",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

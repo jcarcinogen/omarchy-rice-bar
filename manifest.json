@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.jcarcinogen.rice-bar",
+  "name": "Rice Bar",
+  "version": "0.1.0",
+  "author": "Scott Angel",
+  "license": "MIT",
+  "description": "Theme-aware visual presets for the stock Omarchy bar. Rice Bar keeps omarchy.bar, its official logo, widgets, panels, gestures, layout, and behavior intact while drawing passive islands, pills, or minimal accents behind it.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Rice Bar",
+    "description": "Choose stock-preserving visual treatments for the Omarchy bar",
+    "category": "Appearance",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "preset": "islands",
+      "opacity": 92,
+      "radius": 12,
+      "gap": 4,
+      "border": true
+    },
+    "schema": [
+      {
+        "key": "preset",
+        "type": "enum",
+        "label": "Style",
+        "options": [
+          "Omarchy",
+          "Islands",
+          "Pills",
+          "Minimal"
+        ],
+        "defaultValue": "Islands",
+        "description": "Omarchy restores the unmodified stock bar. Other styles draw passive theme-aware chrome behind its stock widgets."
+      },
+      {
+        "key": "opacity",
+        "type": "integer",
+        "label": "Surface opacity (%)",
+        "min": 20,
+        "max": 100,
+        "step": 2,
+        "defaultValue": 92
+      },
+      {
+        "key": "radius",
+        "type": "integer",
+        "label": "Corner radius (px)",
+        "min": 0,
+        "max": 24,
+        "step": 1,
+        "defaultValue": 12
+      },
+      {
+        "key": "gap",
+        "type": "integer",
+        "label": "Surface breathing room (px)",
+        "min": 0,
+        "max": 24,
+        "step": 1,
+        "defaultValue": 4
+      },
+      {
+        "key": "border",
+        "type": "boolean",
+        "label": "Accent border",
+        "defaultValue": true
+      }
+    ]
+  }
+}
