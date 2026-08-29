@@ -77,6 +77,77 @@ Item {
     else bar.transparent = stockRequestedTransparent
   }
 
+  function childList(item) {
+    if (!item) return []
+    var list = []
+    var children = item.children
+    if (children && children.length) {
+      for (var i = 0; i < children.length; i++) list.push(children[i])
+    }
+    if (list.length) return list
+    var data = item.data
+    if (data && data.length) {
+      for (var d = 0; d < data.length; d++) {
+        if (data[d] && (data[d].width !== undefined || data[d].implicitWidth !== undefined))
+          list.push(data[d])
+      }
+    }
+    return list
+  }
+
+  function isSlotSized(item) {
+    if (!item) return false
+    var w = Number(item.width) || Number(item.implicitWidth) || 0
+    var h = Number(item.height) || Number(item.implicitHeight) || 0
+    return RiceModel.isSlotSized(w, h, root.barSize)
+  }
+
+  function slotLeaves(item) {
+    var acc = []
+    gatherSlotSized(item, acc)
+    return acc
+  }
+
+  function gatherSlotSized(item, acc) {
+    if (!item || item.visible === false) return
+    if (isSlotSized(item)) acc.push(item)
+    var children = childList(item)
+    for (var i = 0; i < children.length; i++)
+      gatherSlotSized(children[i], acc)
+  }
+
+  function leafOverlaps(leafPoint, leaf, parentPoint, parent) {
+    var ly = Number(leafPoint.y)
+    var lh = Number(leaf.height) || Number(leaf.implicitHeight) || 0
+    var py = Number(parentPoint.y)
+    var ph = Number(parent.height) || Number(root.barSize) || 26
+    var overlapH = Math.min(ly + lh, py + ph) - Math.max(ly, py)
+    return overlapH > lh * 0.4
+  }
+
+  function trayLeaves(slot, point) {
+    var leaves = []
+    if (!slot || String(slot.moduleName) !== "omarchy.tray") return leaves
+    var icons = slotLeaves(slot.activeItem)
+    for (var j = 0; j < icons.length; j++) {
+      var leaf = icons[j]
+      var lp = { x: point.x, y: point.y }
+      try { lp = leaf.mapToItem(null, 0, 0) } catch (error) {}
+      if (!leafOverlaps(lp, leaf, point, slot)) continue
+      leaves.push({
+        id: "omarchy.tray." + leaves.length,
+        section: String(slot.region || ""),
+        x: Math.round(lp.x),
+        y: Math.round(lp.y),
+        width: Math.round(Number(leaf.width) || Number(leaf.implicitWidth) || 0),
+        height: Math.round(Number(leaf.height) || Number(leaf.implicitHeight) || 0),
+        visible: true,
+        itemVisible: true
+      })
+    }
+    return leaves
+  }
+
   function geometryForScreen(screenName) {
     var serial = geometrySerial
     var result = []
@@ -96,7 +167,8 @@ Item {
         width: Math.round(Number(slot.width) || 0),
         height: Math.round(Number(slot.height) || 0),
         visible: slot.visible === true && Number(slot.width) > 0 && Number(slot.height) > 0,
-        itemVisible: slot.activeItem.visible === true
+        itemVisible: slot.activeItem.visible === true,
+        leaves: trayLeaves(slot, point)
       })
     }
     return result
@@ -108,7 +180,7 @@ Item {
     var rects = []
     if (style === "omarchy") return rects
     if (style === "pills")
-      rects = RiceModel.pillRects(geometry, Math.max(1, Math.floor(live.gap / 2)))
+      rects = RiceModel.pillRects(geometry, Math.max(1, Math.floor(live.gap / 2)), null, axis)
     else if (style === "minimal" || style === "islands")
       rects = RiceModel.islandRects(geometry, live.gap)
     return RiceModel.separateRects(rects, axis, 2)

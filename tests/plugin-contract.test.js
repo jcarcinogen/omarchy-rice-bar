@@ -67,6 +67,13 @@ test('settings control uses the rice-bowl glyph and never replaces Omarchy brand
   assert.doesNotMatch(widget, /moduleName:\s*["']omarchy\./);
 });
 
+test('pills collect per-icon tray leaves from the stock overlay', () => {
+  const service = source('Service.qml');
+  assert.match(service, /omarchy\.tray/);
+  assert.match(service, /slotLeaves/);
+  assert.match(service, /leaves:/);
+});
+
 test('all selectable presets are implemented by the overlay', () => {
   const service = source('Service.qml');
   for (const preset of ['omarchy', 'islands', 'pills', 'minimal']) {

@@ -100,8 +100,75 @@ function islandRects(items, padding, controllerId) {
   return result
 }
 
-function pillRects(items, padding, controllerId) {
-  return visibleWidgets(items, controllerId).map(function(item) {
+function isSlotSized(width, height, barSize) {
+  var w = Number(width) || 0
+  var h = Number(height) || 0
+  var slot = Math.max(18, Number(barSize) || 26)
+  if (!(w >= 20 && h >= 20 && w <= slot + 10 && h <= slot + 10)) return false
+  return Math.max(w, h) / Math.min(w, h) <= 1.65
+}
+
+function uniqueByPosition(items, axis) {
+  if (!Array.isArray(items)) return []
+  var vertical = String(axis || "horizontal") === "vertical"
+  var posKey = vertical ? "y" : "x"
+  var sizeKey = vertical ? "height" : "width"
+  var sorted = items.filter(function(item) { return item }).slice().sort(function(a, b) {
+    return Number(a[posKey]) - Number(b[posKey])
+  })
+  var result = []
+  for (var i = 0; i < sorted.length; i++) {
+    var item = sorted[i]
+    var center = Number(item[posKey]) + Number(item[sizeKey]) / 2
+    var merged = false
+    for (var r = 0; r < result.length; r++) {
+      var current = result[r]
+      var currentCenter = Number(current[posKey]) + Number(current[sizeKey]) / 2
+      if (Math.abs(center - currentCenter) < 14) {
+        merged = true
+        break
+      }
+    }
+    if (!merged) result.push(item)
+  }
+  return result
+}
+
+function pillItems(items, controllerId, axis) {
+  var visible = visibleWidgets(items, controllerId)
+  var result = []
+  for (var i = 0; i < visible.length; i++) {
+    var item = visible[i]
+    var leaves = item && Array.isArray(item.leaves) ? item.leaves : []
+    var expanded = []
+    for (var l = 0; l < leaves.length; l++) {
+      var leaf = leaves[l]
+      if (!leaf) continue
+      if (leaf.visible === false || leaf.itemVisible === false) continue
+      if (!(Number(leaf.width) > 0 && Number(leaf.height) > 0)) continue
+      expanded.push({
+        id: String(leaf.id || (item.id + "." + l)),
+        section: String(leaf.section || item.section || ""),
+        x: Number(leaf.x),
+        y: Number(leaf.y),
+        width: Number(leaf.width),
+        height: Number(leaf.height),
+        visible: true,
+        itemVisible: true
+      })
+    }
+    expanded = uniqueByPosition(expanded, axis)
+    if (expanded.length > 1) {
+      for (var e = 0; e < expanded.length; e++) result.push(expanded[e])
+    } else {
+      result.push(item)
+    }
+  }
+  return result
+}
+
+function pillRects(items, padding, controllerId, axis) {
+  return pillItems(items, controllerId, axis).map(function(item) {
     return boundsFor([item], String(item.id), padding)
   })
 }
@@ -164,6 +231,9 @@ if (typeof module !== "undefined" && module.exports) {
     visibleWidgets: visibleWidgets,
     findEntry: findEntry,
     islandRects: islandRects,
+    pillItems: pillItems,
+    uniqueByPosition: uniqueByPosition,
+    isSlotSized: isSlotSized,
     pillRects: pillRects,
     separateRects: separateRects,
     accentRects: accentRects

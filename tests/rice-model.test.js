@@ -62,6 +62,36 @@ test('builds a capsule for each visible stock widget', () => {
   ]);
 });
 
+test('slot-sized tray leaves stay roughly square so grouped rows do not count', () => {
+  assert.equal(RiceModel.isSlotSized(27, 26, 26), true);
+  assert.equal(RiceModel.isSlotSized(54, 26, 26), false);
+  assert.equal(RiceModel.isSlotSized(12, 12, 26), false);
+  assert.equal(RiceModel.isSlotSized(16, 16, 26), false);
+});
+
+test('pills split a tray widget into one capsule per visible tray icon', () => {
+  const tray = {
+    id: 'omarchy.tray',
+    section: 'right',
+    x: 1112,
+    y: 0,
+    width: 81,
+    height: 26,
+    visible: true,
+    itemVisible: true,
+    leaves: [
+      { id: 'omarchy.tray.0', x: 1112, y: 0, width: 27, height: 26, visible: true, itemVisible: true, section: 'right' },
+      { id: 'omarchy.tray.dup', x: 1118, y: 5, width: 16, height: 16, visible: true, itemVisible: true, section: 'right' },
+      { id: 'omarchy.tray.1', x: 1139, y: 0, width: 27, height: 26, visible: true, itemVisible: true, section: 'right' },
+      { id: 'omarchy.tray.2', x: 1166, y: 0, width: 27, height: 26, visible: true, itemVisible: true, section: 'right' }
+    ]
+  };
+  assert.deepEqual(RiceModel.pillRects([tray, widgets[5]], 2).map(rect => rect.key), [
+    'omarchy.tray.0', 'omarchy.tray.1', 'omarchy.tray.2', 'omarchy.audio'
+  ]);
+  assert.deepEqual(RiceModel.islandRects([tray, widgets[5]], 4).map(rect => rect.key), ['right']);
+});
+
 test('separates padded section rectangles that would otherwise touch or overlap', () => {
   assert.deepEqual(RiceModel.separateRects([
     { key: 'center', x: 0, y: 380, width: 26, height: 190 },
