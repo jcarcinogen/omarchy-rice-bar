@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.jcarcinogen.rice-bar",
   "name": "Rice Bar",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "author": "Scott Angel",
   "license": "MIT",
-  "description": "Theme-aware visual presets for the stock Omarchy bar. Rice Bar keeps omarchy.bar, its official logo, widgets, panels, gestures, layout, and behavior intact while drawing passive islands, pills, or minimal accents behind it.",
+  "description": "Theme-aware visual presets for the stock Omarchy bar. Rice Bar keeps omarchy.bar, its official logo, widgets, panels, gestures, layout, and behavior intact while drawing passive chrome behind it.",
   "kinds": [
     "service",
     "bar-widget"
@@ -36,6 +36,13 @@
           "Omarchy",
           "Islands",
           "Pills",
+          "Material",
+          "Outline",
+          "Rail",
+          "Bracket",
+          "Glow",
+          "Powerline",
+          "Mono",
           "Minimal"
         ],
         "defaultValue": "Islands",

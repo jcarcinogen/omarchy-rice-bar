@@ -19,19 +19,38 @@ It keeps `omarchy.bar` active and leaves Omarchy's official logo, workspaces, in
 | **Default** | Restores the unmodified stock bar. |
 | **Islands** | Rounded left, center, and right surfaces. This is the default Rice Bar style. |
 | **Pills** | A compact capsule behind each visible widget. |
+| **Material** | Soft tonal section cards with a stronger center surface. |
+| **Outline** | Nearly transparent sections defined by crisp accent outlines. |
+| **Rail** | A continuous inner-edge rail with brighter section segments. |
+| **Bracket** | Technical accent corner brackets around each stock section. |
+| **Glow** | Dark translucent surfaces with layered accent outlines. |
+| **Powerline** | Angular section backplates inspired by classic Unix bars. |
+| **Mono** | Sharp, high-contrast cards with restrained theme-text borders. |
 | **Minimal** | Theme-accent rules on the bar's inner edge. |
 
 All Rice Bar styles bind to Omarchy's active `Color.bar.background`, `Color.bar.text`, and `Color.accent` roles. Rice Bar does not ship a separate color theme.
 
 ## Examples
 
-![Islands on a green city theme](examples/islands-green.png)
+| Bracket | Glow |
+|---|---|
+| ![Rice Bar Bracket style](examples/bracket.png) | ![Rice Bar Glow style](examples/glow.png) |
 
-![Islands on a warm abstract theme](examples/islands-orange.png)
+| Islands | Material |
+|---|---|
+| ![Rice Bar Islands style](examples/islands.png) | ![Rice Bar Material style](examples/material.png) |
 
-![Minimal on a light theme](examples/minimal-light.png)
+| Minimal | Mono |
+|---|---|
+| ![Rice Bar Minimal style](examples/minimal.png) | ![Rice Bar Mono style](examples/mono.png) |
 
-![Pills on a dark sketch theme](examples/pills-dark.png)
+| Outline | Pills |
+|---|---|
+| ![Rice Bar Outline style](examples/outline.png) | ![Rice Bar Pills style](examples/pills.png) |
+
+| Powerline | Rail |
+|---|---|
+| ![Rice Bar Powerline style](examples/powerline.png) | ![Rice Bar Rail style](examples/rail.png) |
 
 ## Install
 
@@ -50,18 +69,30 @@ The settings panel exposes:
 - Corner radius
 - Breathing room
 - Accent border
+- A **Restore _Style_ defaults** button for the selected style
+
+Each style starts with appearance values chosen for its visual inspiration. Slider and border changes are saved only for the selected style; switching away and back restores that style's saved values. The restore button clears only that style's customization and reloads its built-in values.
+
+Rice Bar derives surfaces and accents from the live Omarchy `Color.bar` palette. If a theme's bar background, text, and accent are too similar, it selects a contrasting theme-compatible surface and maintains a visibility floor so chrome does not disappear into the wallpaper. Theme changes repaint live; saved opacity remains an intensity control rather than allowing an unreadable surface.
 
 You can also switch styles through Omarchy shell IPC:
 
 ```bash
 omarchy-shell rice-bar style islands
 omarchy-shell rice-bar style pills
+omarchy-shell rice-bar style material
+omarchy-shell rice-bar style outline
+omarchy-shell rice-bar style rail
+omarchy-shell rice-bar style bracket
+omarchy-shell rice-bar style glow
+omarchy-shell rice-bar style powerline
+omarchy-shell rice-bar style mono
 omarchy-shell rice-bar style minimal
 omarchy-shell rice-bar style omarchy
 omarchy-shell rice-bar status
 ```
 
-`style omarchy` is the same rollback path as **Restore default bar** in the panel.
+`style omarchy` selects the unmodified stock bar. The panel's restore button resets the currently selected style rather than changing styles.
 
 Settings remain inline on Rice Bar's entry in `~/.config/omarchy/shell.json`; no sidecar configuration file is created.
 

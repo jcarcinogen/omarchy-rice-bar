@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -21,6 +22,7 @@ Item {
   readonly property var pluginEntry: RiceModel.findEntry(shell ? shell.shellConfig : null, pluginId)
   readonly property var live: RiceModel.snapshot(pluginEntry)
   readonly property string preset: live.preset
+  readonly property var recipe: RiceModel.paintRecipe(preset)
   readonly property bool riceActive: preset !== "omarchy"
   readonly property bool barHidden: bar && "barHidden" in bar ? bar.barHidden === true : false
   readonly property string position: bar && bar.position ? String(bar.position) : "top"
@@ -28,16 +30,31 @@ Item {
   readonly property int barSize: bar && Number(bar.barSize) > 0
     ? Number(bar.barSize)
     : (vertical ? Style.bar.sizeVertical : Style.bar.sizeHorizontal)
-  readonly property color surfaceColor: Qt.rgba(
-    Color.bar.background.r,
-    Color.bar.background.g,
-    Color.bar.background.b,
-    live.opacity / 100
-  )
+  readonly property color adaptiveSurface: RiceModel.contrastSurface(
+    Color.bar.background, Color.bar.text, Color.accent)
+  readonly property color adaptiveAccent: RiceModel.contrastColor(
+    Color.accent, Color.bar.text, adaptiveSurface)
+  readonly property color readableForeground: RiceModel.readableForeground(
+    adaptiveSurface, Color.bar.text, Color.bar.background)
+  readonly property real surfaceAlpha: RiceModel.visibleAlpha(root.live.opacity, 0.32)
+  readonly property color surfaceColor: root.colorWithAlpha(adaptiveSurface, surfaceAlpha)
 
   property bool stockStateCaptured: false
   property bool stockRequestedTransparent: false
-  property int geometrySerial: 0
+
+  function colorWithAlpha(color, alpha) {
+    return Qt.rgba(color.r, color.g, color.b, Math.max(0, Math.min(1, alpha)))
+  }
+
+  function blendColor(first, second, weight, alpha) {
+    var mix = Math.max(0, Math.min(1, Number(weight) || 0))
+    return Qt.rgba(
+      first.r * (1 - mix) + second.r * mix,
+      first.g * (1 - mix) + second.g * mix,
+      first.b * (1 - mix) + second.b * mix,
+      Math.max(0, Math.min(1, alpha))
+    )
+  }
 
   function captureStockState() {
     if (stockStateCaptured || !bar) return
@@ -48,7 +65,7 @@ Item {
   function useThemeForeground() {
     if (!riceActive || !bar) return
     bar.foregroundAnimationEnabled = false
-    bar.transparentForeground = Color.bar.text
+    bar.transparentForeground = root.readableForeground
     bar.useTransparentForeground = true
     bar.transparent = true
     Qt.callLater(function() {
@@ -149,7 +166,6 @@ Item {
   }
 
   function geometryForScreen(screenName) {
-    var serial = geometrySerial
     var result = []
     if (!bar || !Array.isArray(bar.moduleSlots)) return result
     for (var i = 0; i < bar.moduleSlots.length; i++) {
@@ -175,22 +191,23 @@ Item {
   }
 
   function rectsForPreset(value, geometry) {
-    var style = RiceModel.normalizePreset(value)
+    var recipe = RiceModel.paintRecipe(value)
     var axis = vertical ? "vertical" : "horizontal"
     var rects = []
-    if (style === "omarchy") return rects
-    if (style === "pills")
+    if (recipe.geometry === "none") return rects
+    if (recipe.geometry === "widgets")
       rects = RiceModel.pillRects(geometry, Math.max(1, Math.floor(live.gap / 2)), null, axis)
-    else if (style === "minimal" || style === "islands")
+    else
       rects = RiceModel.islandRects(geometry, live.gap)
-    return RiceModel.separateRects(rects, axis, 2)
+    var separated = RiceModel.separateRects(rects, axis, 2)
+    return recipe.geometry === "widgets"
+      ? RiceModel.balanceMenuPill(separated, axis)
+      : separated
   }
 
   function persistPreset(value) {
-    var normalized = RiceModel.normalizePreset(value)
     if (!shell || typeof shell.updateEntryInline !== "function") return false
-    var next = RiceModel.snapshot(pluginEntry)
-    next.preset = normalized
+    var next = RiceModel.switchPreset(pluginEntry, value)
     return shell.updateEntryInline(pluginId, next)
   }
 
@@ -222,14 +239,12 @@ Item {
   Connections {
     target: Color.bar
     function onTextChanged() { root.useThemeForeground() }
+    function onBackgroundChanged() { root.useThemeForeground() }
   }
 
-  Timer {
-    interval: 250
-    repeat: true
-    running: root.riceActive && !root.barHidden
-    triggeredOnStart: true
-    onTriggered: root.geometrySerial++
+  Connections {
+    target: Color
+    function onAccentChanged() { root.useThemeForeground() }
   }
 
   Timer {
@@ -283,8 +298,8 @@ Item {
 
         readonly property bool edgeVertical: root.vertical
         readonly property int span: Math.max(0, root.barSize)
-        readonly property var geometry: root.geometryForScreen(modelData.name)
-        readonly property var paintRects: root.rectsForPreset(root.preset, geometry)
+        property var widgetGeometry: []
+        readonly property var paintRects: root.rectsForPreset(root.preset, widgetGeometry)
 
         visible: root.riceActive && !root.barHidden && span > 0 && !remapGuard.remapping
         implicitWidth: edgeVertical ? span : 0
@@ -295,6 +310,14 @@ Item {
           bottom: root.position === "bottom" || edgeVertical
           left: root.position === "left" || !edgeVertical
           right: root.position === "right" || !edgeVertical
+        }
+
+        Timer {
+          interval: 250
+          repeat: true
+          running: riceWindow.visible
+          triggeredOnStart: true
+          onTriggered: riceWindow.widgetGeometry = root.geometryForScreen(riceWindow.modelData.name)
         }
 
         ScreenMoveRemap {
@@ -308,50 +331,239 @@ Item {
 
         mask: Region {}
 
+        Rectangle {
+          id: continuousRail
+          visible: root.recipe.decoration === "rail"
+          color: root.colorWithAlpha(root.adaptiveAccent,
+            RiceModel.visibleAlpha(root.live.opacity, 0.32))
+          radius: Math.min(root.live.radius, 1)
+          x: riceWindow.edgeVertical
+            ? (root.position === "left" ? riceWindow.span - 1 : 0) : 0
+          y: riceWindow.edgeVertical
+            ? 0 : (root.position === "top" ? riceWindow.span - 1 : 0)
+          width: riceWindow.edgeVertical ? 1 : riceWindow.width
+          height: riceWindow.edgeVertical ? riceWindow.height : 1
+        }
+
         Repeater {
+          id: sparseBackplates
           model: riceWindow.paintRects
+          visible: root.recipe.decoration === "rail"
+            || root.recipe.decoration === "bracket"
+            || root.recipe.decoration === "minimal"
 
           delegate: Rectangle {
             required property var modelData
+            x: riceWindow.edgeVertical ? 1 : Math.max(0, modelData.x)
+            y: riceWindow.edgeVertical ? Math.max(0, modelData.y) : 1
+            width: riceWindow.edgeVertical
+              ? Math.max(0, riceWindow.span - 2)
+              : Math.max(0, Math.min(modelData.width, riceWindow.width - x))
+            height: riceWindow.edgeVertical
+              ? Math.max(0, Math.min(modelData.height, riceWindow.height - y))
+              : Math.max(0, riceWindow.span - 2)
+            radius: Math.min(root.live.radius, width / 2, height / 2)
+            color: root.colorWithAlpha(root.adaptiveSurface, root.surfaceAlpha)
+            antialiasing: true
+          }
+        }
 
-            readonly property bool minimal: root.preset === "minimal"
-            readonly property int inset: minimal ? 0 : 2
-            readonly property int rule: 2
+        Repeater {
+          model: riceWindow.paintRects
+
+          delegate: Item {
+            id: surface
+            required property var modelData
+
+            readonly property string decoration: String(root.recipe.decoration || "surface")
+            readonly property bool minimal: decoration === "minimal"
+            readonly property bool rail: decoration === "rail"
+            readonly property bool material: decoration === "material"
+            readonly property bool outline: decoration === "outline"
+            readonly property bool bracket: decoration === "bracket"
+            readonly property bool glow: decoration === "glow"
+            readonly property bool powerline: decoration === "powerline"
+            readonly property bool mono: decoration === "mono"
+            readonly property bool edgeRule: minimal || rail
+            readonly property int inset: edgeRule ? 0 : 2
+            readonly property int rule: rail ? 3 : 2
+            readonly property int desiredRadius: root.live.radius
+            readonly property real opacityFactor: root.live.opacity / 100
+            readonly property int powerlineCut: Math.max(2,
+              Math.floor(Math.min(Math.min(width, height) / 3, 4 + root.live.radius / 3)))
+            readonly property color accentColor: root.colorWithAlpha(root.adaptiveAccent,
+              RiceModel.visibleAlpha(root.live.opacity, 0.44))
+            readonly property color edgeRuleColor: root.live.border
+              ? accentColor
+              : root.colorWithAlpha(Color.bar.text, RiceModel.visibleAlpha(root.live.opacity, 0.32))
+            readonly property color fillColor: {
+              var alpha = root.surfaceAlpha
+              if (material)
+                return root.blendColor(root.adaptiveSurface, root.adaptiveAccent,
+                  modelData.key === "center" ? 0.20 : 0.10,
+                  modelData.key === "center" ? alpha : Math.max(0.42, alpha * 0.86))
+              if (outline) return root.colorWithAlpha(root.adaptiveSurface, Math.max(0.34, alpha * 0.44))
+              if (glow) return root.colorWithAlpha(Qt.darker(root.adaptiveSurface, 1.28), alpha)
+              if (mono) return root.colorWithAlpha(Qt.darker(root.adaptiveSurface, 1.38), alpha)
+              return root.surfaceColor
+            }
+            readonly property color outlineColor: {
+              if (!root.live.border) return "transparent"
+              var strong = RiceModel.visibleAlpha(root.live.opacity, 0.48)
+              if (outline) return root.colorWithAlpha(root.adaptiveAccent, strong)
+              if (glow) return root.colorWithAlpha(root.adaptiveAccent, strong)
+              if (mono) return root.colorWithAlpha(Color.bar.text, Math.max(0.62, strong * 0.82))
+              return root.colorWithAlpha(root.adaptiveAccent, Math.max(0.55, strong * 0.72))
+            }
 
             x: {
-              if (minimal && root.position === "left") return riceWindow.span - rule
-              if (minimal && root.position === "right") return 0
+              if (edgeRule && root.position === "left") return riceWindow.span - rule
+              if (edgeRule && root.position === "right") return 0
               if (riceWindow.edgeVertical) return inset
               return Math.max(0, modelData.x)
             }
             y: {
-              if (minimal && root.position === "top") return riceWindow.span - rule
-              if (minimal && root.position === "bottom") return 0
+              if (edgeRule && root.position === "top") return riceWindow.span - rule
+              if (edgeRule && root.position === "bottom") return 0
               if (!riceWindow.edgeVertical) return inset
               return Math.max(0, modelData.y)
             }
             width: {
-              if (minimal && riceWindow.edgeVertical) return rule
+              if (edgeRule && riceWindow.edgeVertical) return rule
               if (riceWindow.edgeVertical) return Math.max(0, riceWindow.span - inset * 2)
               return Math.max(0, Math.min(modelData.width, riceWindow.width - x))
             }
             height: {
-              if (minimal && !riceWindow.edgeVertical) return rule
+              if (edgeRule && !riceWindow.edgeVertical) return rule
               if (!riceWindow.edgeVertical) return Math.max(0, riceWindow.span - inset * 2)
               return Math.max(0, Math.min(modelData.height, riceWindow.height - y))
             }
 
-            radius: minimal ? rule / 2 : Math.min(root.live.radius, width / 2, height / 2)
-            color: minimal ? Color.accent : root.surfaceColor
-            border.width: !minimal && root.live.border ? 1 : 0
-            border.color: Color.accent
-            antialiasing: true
+            Rectangle {
+              id: baseSurface
+              anchors.fill: parent
+              visible: !surface.edgeRule && !surface.bracket && !surface.powerline
+              radius: Math.min(surface.desiredRadius, width / 2, height / 2)
+              color: "transparent"
+              clip: true
+              border.width: {
+                if (!root.live.border) return 0
+                if (surface.outline) return 2
+                return 1
+              }
+              border.color: surface.outlineColor
+              antialiasing: true
+
+              Rectangle {
+                id: innerFill
+                anchors.fill: parent
+                anchors.margins: baseSurface.border.width
+                color: surface.fillColor
+                radius: Math.max(0, baseSurface.radius - baseSurface.border.width)
+                antialiasing: true
+              }
+
+
+              Rectangle {
+                anchors.fill: parent
+                anchors.margins: 2
+                visible: surface.material
+                color: root.colorWithAlpha(root.adaptiveAccent,
+                  (surface.modelData.key === "center" ? 0.11 : 0.05) * surface.opacityFactor)
+                radius: Math.max(0, parent.radius - 2)
+              }
+
+              Rectangle {
+                anchors.fill: parent
+                anchors.margins: 2
+                visible: surface.glow && root.live.border
+                color: "transparent"
+                radius: Math.max(0, parent.radius - 2)
+                border.width: 1
+                border.color: root.colorWithAlpha(root.adaptiveAccent, 0.34 * surface.opacityFactor)
+              }
+
+              Rectangle {
+                anchors.fill: parent
+                anchors.margins: 4
+                visible: surface.glow && root.live.border
+                color: "transparent"
+                radius: Math.max(0, parent.radius - 4)
+                border.width: 1
+                border.color: root.colorWithAlpha(root.adaptiveAccent, 0.14 * surface.opacityFactor)
+              }
+            }
+
+            Shape {
+              anchors.fill: parent
+              visible: surface.powerline
+              antialiasing: true
+              ShapePath {
+                strokeWidth: root.live.border ? 1 : 0
+                strokeColor: root.colorWithAlpha(root.adaptiveAccent, 0.75 * surface.opacityFactor)
+                fillColor: surface.fillColor
+                joinStyle: ShapePath.MiterJoin
+                startX: riceWindow.edgeVertical ? 0 : surface.powerlineCut
+                startY: riceWindow.edgeVertical ? surface.powerlineCut : 0
+                PathLine {
+                  x: riceWindow.edgeVertical ? surface.width / 2 : surface.width - surface.powerlineCut
+                  y: riceWindow.edgeVertical ? 0 : 0
+                }
+                PathLine {
+                  x: riceWindow.edgeVertical ? surface.width : surface.width
+                  y: riceWindow.edgeVertical ? surface.powerlineCut : surface.height / 2
+                }
+                PathLine {
+                  x: surface.width
+                  y: riceWindow.edgeVertical ? surface.height - surface.powerlineCut : surface.height
+                }
+                PathLine {
+                  x: riceWindow.edgeVertical ? surface.width / 2 : surface.powerlineCut
+                  y: surface.height
+                }
+                PathLine {
+                  x: 0
+                  y: riceWindow.edgeVertical ? surface.height - surface.powerlineCut : surface.height / 2
+                }
+                PathLine {
+                  x: riceWindow.edgeVertical ? 0 : surface.powerlineCut
+                  y: riceWindow.edgeVertical ? surface.powerlineCut : 0
+                }
+              }
+            }
+
+            Rectangle {
+              anchors.fill: parent
+              visible: surface.edgeRule
+              color: surface.edgeRuleColor
+              radius: Math.min(root.live.radius, rule / 2)
+            }
+
+            Item {
+              anchors.fill: parent
+              visible: surface.bracket
+              readonly property int length: Math.min(10, Math.max(5, Math.floor(Math.min(width, height) / 3)))
+              readonly property int thickness: 2
+              readonly property real cornerRadius: Math.min(root.live.radius, thickness / 2)
+              readonly property color bracketColor: root.live.border
+                ? surface.accentColor
+                : root.colorWithAlpha(Color.bar.text,
+                    RiceModel.visibleAlpha(root.live.opacity, 0.32))
+
+              Rectangle { x: 0; y: 0; width: parent.length; height: parent.thickness; radius: parent.cornerRadius; color: parent.bracketColor }
+              Rectangle { x: 0; y: 0; width: parent.thickness; height: parent.length; radius: parent.cornerRadius; color: parent.bracketColor }
+              Rectangle { x: parent.width - parent.length; y: 0; width: parent.length; height: parent.thickness; radius: parent.cornerRadius; color: parent.bracketColor }
+              Rectangle { x: parent.width - parent.thickness; y: 0; width: parent.thickness; height: parent.length; radius: parent.cornerRadius; color: parent.bracketColor }
+              Rectangle { x: 0; y: parent.height - parent.thickness; width: parent.length; height: parent.thickness; radius: parent.cornerRadius; color: parent.bracketColor }
+              Rectangle { x: 0; y: parent.height - parent.length; width: parent.thickness; height: parent.length; radius: parent.cornerRadius; color: parent.bracketColor }
+              Rectangle { x: parent.width - parent.length; y: parent.height - parent.thickness; width: parent.length; height: parent.thickness; radius: parent.cornerRadius; color: parent.bracketColor }
+              Rectangle { x: parent.width - parent.thickness; y: parent.height - parent.length; width: parent.thickness; height: parent.length; radius: parent.cornerRadius; color: parent.bracketColor }
+            }
 
             Behavior on x { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
             Behavior on y { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
             Behavior on width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
             Behavior on height { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
-            Behavior on color { ColorAnimation { duration: 420; easing.type: Easing.InOutCubic } }
           }
         }
       }

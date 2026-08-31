@@ -16,16 +16,33 @@ Panel {
   property var hostWidget: null
   readonly property var barIdentity: hostWidget || root
   readonly property var live: RiceModel.snapshot(settings)
+  readonly property bool appearanceControlsEnabled: live.preset !== "omarchy"
   readonly property color foreground: bar ? bar.foreground : Color.popups.text
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
-  function persist(values) {
-    var next = RiceModel.snapshot(settings)
-    for (var key in values) next[key] = values[key]
+  function persistSettings(next) {
     settings = next
     if (hostWidget && "settings" in hostWidget) hostWidget.settings = next
     if (bar && bar.shell && typeof bar.shell.updateEntryInline === "function")
       bar.shell.updateEntryInline(root.moduleName, next)
+  }
+
+  function selectPreset(value) {
+    persistSettings(RiceModel.switchPreset(settings, value))
+  }
+
+  function persistAppearance(values) {
+    persistSettings(RiceModel.updateAppearance(settings, values))
+  }
+
+  function resetCurrentPreset() {
+    persistSettings(RiceModel.resetPreset(settings))
+  }
+
+  function styleLabel(value) {
+    var preset = RiceModel.normalizePreset(value)
+    if (preset === "omarchy") return "Default"
+    return preset.charAt(0).toUpperCase() + preset.slice(1)
   }
 
   function open() { root.controller.show() }
@@ -93,6 +110,7 @@ Panel {
           PanelSeparator { foreground: root.foreground }
 
           Dropdown {
+            id: styleDropdown
             width: parent.width
             label: "Style"
             fontFamily: root.fontFamily
@@ -100,10 +118,22 @@ Panel {
               { value: "omarchy", label: "Default" },
               { value: "islands", label: "Islands" },
               { value: "pills", label: "Pills" },
+              { value: "material", label: "Material" },
+              { value: "outline", label: "Outline" },
+              { value: "rail", label: "Rail" },
+              { value: "bracket", label: "Bracket" },
+              { value: "glow", label: "Glow" },
+              { value: "powerline", label: "Powerline" },
+              { value: "mono", label: "Mono" },
               { value: "minimal", label: "Minimal" }
             ]
+            onChanged: function(value) { root.selectPreset(value) }
+          }
+
+          Binding {
+            target: styleDropdown
+            property: "value"
             value: root.live.preset
-            onChanged: function(value) { root.persist({ preset: value }) }
           }
 
           Text {
@@ -111,6 +141,13 @@ Panel {
             text: {
               if (root.live.preset === "omarchy") return "The unmodified stock bar."
               if (root.live.preset === "pills") return "One compact surface behind each visible widget."
+              if (root.live.preset === "material") return "Soft tonal section cards with a stronger center surface."
+              if (root.live.preset === "outline") return "Nearly transparent sections defined by crisp accent outlines."
+              if (root.live.preset === "rail") return "A continuous inner-edge rail with brighter section segments."
+              if (root.live.preset === "bracket") return "Technical accent corner brackets around each stock section."
+              if (root.live.preset === "glow") return "Dark surfaces with layered theme-accent outlines."
+              if (root.live.preset === "powerline") return "Angular section backplates inspired by classic Unix bars."
+              if (root.live.preset === "mono") return "Sharp high-contrast cards with restrained theme borders."
               if (root.live.preset === "minimal") return "A restrained accent on the bar's inner edge."
               return "Rounded left, center, and right surfaces."
             }
@@ -153,8 +190,9 @@ Panel {
             maximum: 100
             step: 2
             integer: true
+            enabled: root.appearanceControlsEnabled
             value: root.live.opacity
-            onMoved: function(value) { root.persist({ opacity: value }) }
+            onMoved: function(value) { root.persistAppearance({ opacity: value }) }
           }
 
           RowLayout {
@@ -182,8 +220,9 @@ Panel {
             maximum: 24
             step: 1
             integer: true
+            enabled: root.appearanceControlsEnabled
             value: root.live.radius
-            onMoved: function(value) { root.persist({ radius: value }) }
+            onMoved: function(value) { root.persistAppearance({ radius: value }) }
           }
 
           RowLayout {
@@ -211,8 +250,9 @@ Panel {
             maximum: 24
             step: 1
             integer: true
+            enabled: root.appearanceControlsEnabled
             value: root.live.gap
-            onMoved: function(value) { root.persist({ gap: value }) }
+            onMoved: function(value) { root.persistAppearance({ gap: value }) }
           }
 
           RowLayout {
@@ -226,20 +266,21 @@ Panel {
               Layout.fillWidth: true
             }
             ToggleSwitch {
+              enabled: root.appearanceControlsEnabled
               checked: root.live.border
               foreground: root.foreground
               accent: Color.accent
-              onToggled: root.persist({ border: !root.live.border })
+              onToggled: root.persistAppearance({ border: !root.live.border })
             }
           }
 
           Button {
             width: parent.width
-            text: "Restore default bar"
+            text: "Restore " + root.styleLabel(root.live.preset) + " defaults"
             iconText: "󰑓"
             foreground: root.foreground
             bordered: true
-            onClicked: root.persist({ preset: "omarchy" })
+            onClicked: root.resetCurrentPreset()
           }
         }
       }
