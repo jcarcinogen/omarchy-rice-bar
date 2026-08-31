@@ -34,9 +34,19 @@ Item {
     Color.bar.background, Color.bar.text, Color.accent)
   readonly property color adaptiveAccent: RiceModel.contrastColor(
     Color.accent, Color.bar.text, adaptiveSurface)
-  readonly property color readableForeground: RiceModel.readableForeground(
-    adaptiveSurface, Color.bar.text, Color.bar.background)
-  readonly property real surfaceAlpha: RiceModel.visibleAlpha(root.live.opacity, 0.32)
+  readonly property color materialSurface: root.blendColor(
+    adaptiveSurface, adaptiveAccent, 0.15, 1)
+  readonly property var contrastSurfaces: {
+    if (recipe.decoration === "material") return [materialSurface]
+    if (recipe.decoration === "glow") return [Qt.darker(adaptiveSurface, 1.28)]
+    if (recipe.decoration === "mono") return [Qt.darker(adaptiveSurface, 1.38)]
+    return [adaptiveSurface]
+  }
+  readonly property real requestedSurfaceAlpha: RiceModel.visibleAlpha(root.live.opacity, 0.32)
+  readonly property var contrastPlan: RiceModel.readableCompositePlan(
+    contrastSurfaces, requestedSurfaceAlpha, Color.bar.text, Color.bar.background, 4.5)
+  readonly property color readableForeground: contrastPlan.foreground
+  readonly property real surfaceAlpha: contrastPlan.alpha
   readonly property color surfaceColor: root.colorWithAlpha(adaptiveSurface, surfaceAlpha)
 
   property bool stockStateCaptured: false
@@ -226,6 +236,7 @@ Item {
 
   onBarChanged: Qt.callLater(root.applyBarMode)
   onPresetChanged: Qt.callLater(root.applyBarMode)
+  onReadableForegroundChanged: Qt.callLater(root.useThemeForeground)
 
   Connections {
     target: root.bar
@@ -398,11 +409,8 @@ Item {
               : root.colorWithAlpha(Color.bar.text, RiceModel.visibleAlpha(root.live.opacity, 0.32))
             readonly property color fillColor: {
               var alpha = root.surfaceAlpha
-              if (material)
-                return root.blendColor(root.adaptiveSurface, root.adaptiveAccent,
-                  modelData.key === "center" ? 0.20 : 0.10,
-                  modelData.key === "center" ? alpha : Math.max(0.42, alpha * 0.86))
-              if (outline) return root.colorWithAlpha(root.adaptiveSurface, Math.max(0.34, alpha * 0.44))
+              if (material) return root.colorWithAlpha(root.materialSurface, alpha)
+              if (outline) return root.colorWithAlpha(root.adaptiveSurface, alpha)
               if (glow) return root.colorWithAlpha(Qt.darker(root.adaptiveSurface, 1.28), alpha)
               if (mono) return root.colorWithAlpha(Qt.darker(root.adaptiveSurface, 1.38), alpha)
               return root.surfaceColor
@@ -461,16 +469,6 @@ Item {
                 color: surface.fillColor
                 radius: Math.max(0, baseSurface.radius - baseSurface.border.width)
                 antialiasing: true
-              }
-
-
-              Rectangle {
-                anchors.fill: parent
-                anchors.margins: 2
-                visible: surface.material
-                color: root.colorWithAlpha(root.adaptiveAccent,
-                  (surface.modelData.key === "center" ? 0.11 : 0.05) * surface.opacityFactor)
-                radius: Math.max(0, parent.radius - 2)
               }
 
               Rectangle {

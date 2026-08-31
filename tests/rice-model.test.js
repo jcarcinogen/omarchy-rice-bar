@@ -52,6 +52,20 @@ test('readable foreground chooses the strongest theme-compatible contrast', () =
     RiceModel.readableForeground('#dcd7ba', '#c8c093', '#1f1f28'), '#dcd7ba') >= 4.5, true);
 });
 
+test('composite contrast plan covers the actual translucent surface over hostile wallpapers', () => {
+  const requested = RiceModel.visibleAlpha(20, 0.32);
+  const surface = '#1f1f28';
+  const plan = RiceModel.readableCompositePlan(
+    [surface], requested, '#dcd7ba', '#1f1f28', 4.5);
+
+  assert.equal(plan.alpha > requested, true);
+  for (const wallpaper of ['#000000', '#ffffff']) {
+    const painted = RiceModel.compositeColor(surface, wallpaper, plan.alpha);
+    assert.equal(RiceModel.contrastRatio(plan.foreground, painted) >= 4.5, true,
+      `${plan.foreground} must remain readable over ${wallpaper}`);
+  }
+});
+
 test('visible alpha preserves adjustment while enforcing wallpaper-safe contrast', () => {
   assert.equal(Math.round(RiceModel.visibleAlpha(20, 0.32) * 1000), 456);
   assert.equal(Math.round(RiceModel.visibleAlpha(70, 0.32) * 1000), 796);

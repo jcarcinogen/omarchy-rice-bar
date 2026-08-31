@@ -120,11 +120,23 @@ test('renderer derives adaptive contrast surfaces from reactive Omarchy theme co
   assert.match(service, /readonly property color adaptiveSurface:/);
   assert.match(service, /readonly property color adaptiveAccent:/);
   assert.match(service, /bar\.transparentForeground\s*=\s*root\.readableForeground/);
-  assert.match(service, /RiceModel\.readableForeground\([\s\S]{0,120}adaptiveSurface/);
+  assert.match(service, /readonly property var contrastSurfaces:/);
+  assert.match(service, /RiceModel\.readableCompositePlan\([\s\S]{0,180}contrastSurfaces/);
+  assert.match(service, /readonly property real surfaceAlpha:\s*contrastPlan\.alpha/);
+  assert.match(service, /onReadableForegroundChanged:\s*Qt\.callLater\(root\.useThemeForeground\)/);
   assert.match(service, /function onBackgroundChanged\(\)\s*\{\s*root\.useThemeForeground\(\)\s*\}/);
   assert.match(service, /target:\s*Color[\s\S]{0,120}function onAccentChanged\(\)\s*\{\s*root\.useThemeForeground\(\)\s*\}/);
   assert.match(service, /id:\s*sparseBackplates/);
   assert.match(service, /visible:\s*root\.recipe\.decoration\s*===\s*["']rail["'][\s\S]{0,160}bracket[\s\S]{0,160}minimal/);
+});
+
+test('every filled recipe uses the contrast-planned alpha for its actual painted surface', () => {
+  const service = source('Service.qml');
+  assert.match(service, /if \(material\) return root\.colorWithAlpha\(root\.materialSurface,\s*alpha\)/);
+  assert.match(service, /if \(outline\) return root\.colorWithAlpha\(root\.adaptiveSurface,\s*alpha\)/);
+  assert.match(service, /if \(glow\) return root\.colorWithAlpha\(Qt\.darker\(root\.adaptiveSurface,\s*1\.28\),\s*alpha\)/);
+  assert.match(service, /if \(mono\) return root\.colorWithAlpha\(Qt\.darker\(root\.adaptiveSurface,\s*1\.38\),\s*alpha\)/);
+  assert.doesNotMatch(service, /if \(outline\)[^\n]*Math\.max\(0\.34/);
 });
 
 test('every style paint path honors exposed opacity radius and border controls', () => {

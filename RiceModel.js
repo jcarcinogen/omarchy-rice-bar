@@ -126,6 +126,57 @@ function readableForeground(surface, themeText, alternate) {
     : "#ffffff"
 }
 
+function compositeColor(foreground, background, alpha) {
+  var front = colorChannels(foreground)
+  var back = colorChannels(background)
+  var mix = clamp(alpha, 0, 1)
+  return {
+    r: front.r * mix + back.r * (1 - mix),
+    g: front.g * mix + back.g * (1 - mix),
+    b: front.b * mix + back.b * (1 - mix)
+  }
+}
+
+function readableCompositePlan(surfaces, requestedAlpha, themeText, alternate, minimumRatio) {
+  var paints = Array.isArray(surfaces) && surfaces.length ? surfaces : ["#000000"]
+  var candidates = [themeText, alternate, "#000000", "#ffffff"]
+  var unique = []
+  var seen = {}
+  for (var c = 0; c < candidates.length; c++) {
+    var channels = colorChannels(candidates[c])
+    var key = [channels.r, channels.g, channels.b].map(function(channel) {
+      return Math.round(channel * 255)
+    }).join(":")
+    if (!seen[key]) {
+      seen[key] = true
+      unique.push(candidates[c])
+    }
+  }
+
+  var desired = clamp(requestedAlpha, 0, 1)
+  var required = Math.max(1, Number(minimumRatio) || 4.5)
+  var backdrops = ["#000000", "#ffffff"]
+  var best = { foreground: unique[0], alpha: 1, contrast: 0 }
+
+  for (var step = 0; step <= 1000; step++) {
+    var alpha = desired + (1 - desired) * step / 1000
+    for (var i = 0; i < unique.length; i++) {
+      var minimum = Infinity
+      for (var p = 0; p < paints.length; p++) {
+        for (var b = 0; b < backdrops.length; b++) {
+          var painted = compositeColor(paints[p], backdrops[b], alpha)
+          minimum = Math.min(minimum, contrastRatio(unique[i], painted))
+        }
+      }
+      if (minimum > best.contrast)
+        best = { foreground: unique[i], alpha: alpha, contrast: minimum }
+      if (minimum + 1e-9 >= required)
+        return { foreground: unique[i], alpha: alpha, contrast: minimum }
+    }
+  }
+  return best
+}
+
 function visibleAlpha(opacity, floor) {
   var minimum = clamp(floor, 0, 1)
   var adjusted = clamp(opacity, 0, 100) / 100
@@ -504,6 +555,8 @@ if (typeof module !== "undefined" && module.exports) {
     contrastSurface: contrastSurface,
     contrastColor: contrastColor,
     readableForeground: readableForeground,
+    compositeColor: compositeColor,
+    readableCompositePlan: readableCompositePlan,
     visibleAlpha: visibleAlpha,
     styleDefaults: styleDefaults,
     snapshot: snapshot,
