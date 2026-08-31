@@ -127,7 +127,7 @@ test('renderer derives adaptive contrast surfaces from reactive Omarchy theme co
   assert.match(service, /function onBackgroundChanged\(\)\s*\{\s*root\.useThemeForeground\(\)\s*\}/);
   assert.match(service, /target:\s*Color[\s\S]{0,120}function onAccentChanged\(\)\s*\{\s*root\.useThemeForeground\(\)\s*\}/);
   assert.match(service, /id:\s*sparseBackplates/);
-  assert.match(service, /visible:\s*root\.recipe\.decoration\s*===\s*["']rail["'][\s\S]{0,160}bracket[\s\S]{0,160}minimal/);
+  assert.match(service, /model:\s*root\.recipe\.decoration\s*===\s*["']rail["'][\s\S]{0,160}bracket[\s\S]{0,160}minimal[\s\S]{0,120}\?\s*riceWindow\.paintRects\s*:\s*\[\]/);
 });
 
 test('every filled recipe uses the contrast-planned alpha for its actual painted surface', () => {
@@ -139,6 +139,17 @@ test('every filled recipe uses the contrast-planned alpha for its actual painted
   assert.doesNotMatch(service, /if \(outline\)[^\n]*Math\.max\(0\.34/);
 });
 
+test('all visual bar outlines follow the reactive Hyprland active-window border token', () => {
+  const service = source('Service.qml');
+  assert.match(service, /readonly property color themeBorderColor:\s*Color\.flatColor\([\s\S]{0,140}Color\.pick\(["']hyprland\.active-border["'],\s*Color\.accent\)/);
+  assert.match(service, /id:\s*continuousRail[\s\S]{0,120}color:\s*root\.themeBorderColor/);
+  assert.match(service, /readonly property color edgeRuleColor:\s*root\.themeBorderColor/);
+  assert.match(service, /readonly property color outlineColor:[\s\S]{0,120}return root\.themeBorderColor/);
+  assert.match(service, /strokeColor:\s*root\.themeBorderColor/);
+  assert.match(service, /readonly property color bracketColor:\s*root\.themeBorderColor/);
+  assert.doesNotMatch(service, /border\.color:\s*root\.adaptiveAccent/);
+});
+
 test('every style paint path honors exposed opacity radius and border controls', () => {
   const service = source('Service.qml');
   assert.match(service, /readonly property real opacityFactor:\s*root\.live\.opacity\s*\/\s*100/);
@@ -146,8 +157,8 @@ test('every style paint path honors exposed opacity radius and border controls',
   assert.match(service, /radius:\s*Math\.min\(root\.live\.radius,\s*rule\s*\/\s*2\)/);
   assert.match(service, /if\s*\(!root\.live\.border\)\s*return\s*["']transparent["']/);
   assert.match(service, /visible:\s*surface\.glow\s*&&\s*root\.live\.border/);
-  assert.match(service, /bracketColor:\s*root\.live\.border[\s\S]{0,160}surface\.accentColor[\s\S]{0,160}Color\.bar\.text/);
-  assert.match(service, /edgeRuleColor:\s*root\.live\.border[\s\S]{0,160}Color\.bar\.text/);
+  assert.match(service, /bracketColor:\s*root\.themeBorderColor/);
+  assert.match(service, /edgeRuleColor:\s*root\.themeBorderColor/);
   assert.doesNotMatch(service, /Math\.max\(0\.(?:68|82),\s*opacity/);
 });
 
@@ -158,6 +169,12 @@ test('filled surfaces inset their background inside the visible border', () => {
   assert.match(service, /id:\s*innerFill[\s\S]{0,220}color:\s*surface\.fillColor/);
   assert.doesNotMatch(service, /id:\s*baseSurface[\s\S]{0,220}color:\s*surface\.fillColor/);
   assert.match(service, /ShapePath\s*\{[\s\S]{0,180}strokeWidth:\s*root\.live\.border\s*\?\s*1\s*:\s*0[\s\S]{0,180}fillColor:\s*surface\.fillColor/);
+});
+
+test('sparse readability backplates are instantiated only for sparse styles', () => {
+  const service = source('Service.qml');
+  assert.match(service, /id:\s*sparseBackplates[\s\S]{0,220}model:\s*root\.recipe\.decoration\s*===\s*["']rail["'][\s\S]{0,180}\?\s*riceWindow\.paintRects\s*:\s*\[\]/);
+  assert.doesNotMatch(service, /id:\s*sparseBackplates\s*\n\s*model:\s*riceWindow\.paintRects/);
 });
 
 test('overlay samples geometry imperatively instead of binding mapToItem into PanelWindow geometry', () => {

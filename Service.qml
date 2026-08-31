@@ -34,6 +34,8 @@ Item {
     Color.bar.background, Color.bar.text, Color.accent)
   readonly property color adaptiveAccent: RiceModel.contrastColor(
     Color.accent, Color.bar.text, adaptiveSurface)
+  readonly property color themeBorderColor: Color.flatColor(
+    Color.pick("hyprland.active-border", Color.accent), Color.accent)
   readonly property color materialSurface: root.blendColor(
     adaptiveSurface, adaptiveAccent, 0.15, 1)
   readonly property var contrastSurfaces: {
@@ -345,8 +347,7 @@ Item {
         Rectangle {
           id: continuousRail
           visible: root.recipe.decoration === "rail"
-          color: root.colorWithAlpha(root.adaptiveAccent,
-            RiceModel.visibleAlpha(root.live.opacity, 0.32))
+          color: root.themeBorderColor
           radius: Math.min(root.live.radius, 1)
           x: riceWindow.edgeVertical
             ? (root.position === "left" ? riceWindow.span - 1 : 0) : 0
@@ -358,10 +359,11 @@ Item {
 
         Repeater {
           id: sparseBackplates
-          model: riceWindow.paintRects
-          visible: root.recipe.decoration === "rail"
+          model: root.recipe.decoration === "rail"
             || root.recipe.decoration === "bracket"
             || root.recipe.decoration === "minimal"
+            ? riceWindow.paintRects
+            : []
 
           delegate: Rectangle {
             required property var modelData
@@ -402,11 +404,7 @@ Item {
             readonly property real opacityFactor: root.live.opacity / 100
             readonly property int powerlineCut: Math.max(2,
               Math.floor(Math.min(Math.min(width, height) / 3, 4 + root.live.radius / 3)))
-            readonly property color accentColor: root.colorWithAlpha(root.adaptiveAccent,
-              RiceModel.visibleAlpha(root.live.opacity, 0.44))
-            readonly property color edgeRuleColor: root.live.border
-              ? accentColor
-              : root.colorWithAlpha(Color.bar.text, RiceModel.visibleAlpha(root.live.opacity, 0.32))
+            readonly property color edgeRuleColor: root.themeBorderColor
             readonly property color fillColor: {
               var alpha = root.surfaceAlpha
               if (material) return root.colorWithAlpha(root.materialSurface, alpha)
@@ -417,11 +415,7 @@ Item {
             }
             readonly property color outlineColor: {
               if (!root.live.border) return "transparent"
-              var strong = RiceModel.visibleAlpha(root.live.opacity, 0.48)
-              if (outline) return root.colorWithAlpha(root.adaptiveAccent, strong)
-              if (glow) return root.colorWithAlpha(root.adaptiveAccent, strong)
-              if (mono) return root.colorWithAlpha(Color.bar.text, Math.max(0.62, strong * 0.82))
-              return root.colorWithAlpha(root.adaptiveAccent, Math.max(0.55, strong * 0.72))
+              return root.themeBorderColor
             }
 
             x: {
@@ -478,7 +472,7 @@ Item {
                 color: "transparent"
                 radius: Math.max(0, parent.radius - 2)
                 border.width: 1
-                border.color: root.colorWithAlpha(root.adaptiveAccent, 0.34 * surface.opacityFactor)
+                border.color: root.colorWithAlpha(root.themeBorderColor, 0.34 * surface.opacityFactor)
               }
 
               Rectangle {
@@ -488,7 +482,7 @@ Item {
                 color: "transparent"
                 radius: Math.max(0, parent.radius - 4)
                 border.width: 1
-                border.color: root.colorWithAlpha(root.adaptiveAccent, 0.14 * surface.opacityFactor)
+                border.color: root.colorWithAlpha(root.themeBorderColor, 0.14 * surface.opacityFactor)
               }
             }
 
@@ -498,7 +492,7 @@ Item {
               antialiasing: true
               ShapePath {
                 strokeWidth: root.live.border ? 1 : 0
-                strokeColor: root.colorWithAlpha(root.adaptiveAccent, 0.75 * surface.opacityFactor)
+                strokeColor: root.themeBorderColor
                 fillColor: surface.fillColor
                 joinStyle: ShapePath.MiterJoin
                 startX: riceWindow.edgeVertical ? 0 : surface.powerlineCut
@@ -543,10 +537,7 @@ Item {
               readonly property int length: Math.min(10, Math.max(5, Math.floor(Math.min(width, height) / 3)))
               readonly property int thickness: 2
               readonly property real cornerRadius: Math.min(root.live.radius, thickness / 2)
-              readonly property color bracketColor: root.live.border
-                ? surface.accentColor
-                : root.colorWithAlpha(Color.bar.text,
-                    RiceModel.visibleAlpha(root.live.opacity, 0.32))
+              readonly property color bracketColor: root.themeBorderColor
 
               Rectangle { x: 0; y: 0; width: parent.length; height: parent.thickness; radius: parent.cornerRadius; color: parent.bracketColor }
               Rectangle { x: 0; y: 0; width: parent.thickness; height: parent.length; radius: parent.cornerRadius; color: parent.bracketColor }

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.jcarcinogen.rice-bar",
   "name": "Rice Bar",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "author": "Scott Angel",
   "license": "MIT",
   "description": "Theme-aware visual presets for the stock Omarchy bar. Rice Bar keeps omarchy.bar, its official logo, widgets, panels, gestures, layout, and behavior intact while drawing passive chrome behind it.",
