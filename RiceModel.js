@@ -1,6 +1,6 @@
 var PRESETS = [
   "omarchy", "islands", "pills", "material", "outline",
-  "rail", "bracket", "glow", "powerline", "mono", "minimal"
+  "rail", "bracket", "glow", "powerline", "mono", "minimal", "glass", "pixel", "bevel", "ribbon"
 ]
 
 var PAINT_RECIPES = {
@@ -14,7 +14,11 @@ var PAINT_RECIPES = {
   glow: { geometry: "sections", decoration: "glow", fill: "dark", border: "layered", radius: "user" },
   powerline: { geometry: "sections", decoration: "powerline", fill: "surface", border: "accent", radius: "none" },
   mono: { geometry: "sections", decoration: "mono", fill: "dark", border: "text", radius: "user" },
-  minimal: { geometry: "sections", decoration: "minimal", fill: "none", border: "none", radius: "none" }
+  minimal: { geometry: "sections", decoration: "minimal", fill: "none", border: "none", radius: "none" },
+  glass: { geometry: "sections", decoration: "glass", fill: "surface", border: "optional", radius: "user" },
+  pixel: { geometry: "sections", decoration: "pixel", fill: "surface", border: "optional", radius: "user" },
+  bevel: { geometry: "sections", decoration: "bevel", fill: "surface", border: "optional", radius: "user" },
+  ribbon: { geometry: "sections", decoration: "ribbon", fill: "surface", border: "optional", radius: "user" }
 }
 
 var STYLE_DEFAULTS = {
@@ -23,12 +27,16 @@ var STYLE_DEFAULTS = {
   pills: { opacity: 90, radius: 18, gap: 3, border: true },
   material: { opacity: 92, radius: 20, gap: 8, border: false },
   outline: { opacity: 20, radius: 14, gap: 6, border: true },
-  rail: { opacity: 60, radius: 0, gap: 4, border: false },
+  rail: { opacity: 60, radius: 0, gap: 4, border: true },
   bracket: { opacity: 20, radius: 0, gap: 8, border: true },
   glow: { opacity: 82, radius: 16, gap: 8, border: true },
   powerline: { opacity: 92, radius: 0, gap: 6, border: true },
   mono: { opacity: 96, radius: 2, gap: 3, border: true },
-  minimal: { opacity: 55, radius: 0, gap: 2, border: false }
+  minimal: { opacity: 55, radius: 0, gap: 2, border: true },
+  glass: { opacity: 72, radius: 12, gap: 6, border: true },
+  pixel: { opacity: 96, radius: 6, gap: 5, border: true },
+  bevel: { opacity: 96, radius: 4, gap: 5, border: true },
+  ribbon: { opacity: 92, radius: 8, gap: 6, border: true }
 }
 
 var DEFAULTS = {
@@ -177,6 +185,42 @@ function readableCompositePlan(surfaces, requestedAlpha, themeText, alternate, m
   return best
 }
 
+function styleSurface(background, accent, preset) {
+  var base=colorChannels(background),tint=colorChannels(accent)
+  var weight=preset==="material"?0.15:preset==="glass"?0.07:0
+  var dark=preset==="glow"?0.8:preset==="mono"?0.72:1
+  var channels=["r","g","b"].map(function(k){return Math.round(clamp((base[k]*(1-weight)+tint[k]*weight)*dark,0,1)*255)})
+  return "#"+channels.map(function(n){return (n<16?"0":"")+n.toString(16)}).join("")
+}
+// Preserve native foreground instead of writing read-only host color APIs.
+function fixedForegroundPlan(background, foreground, requestedAlpha) {
+  var surface = background
+  if (contrastRatio(surface, foreground) < 4.5)
+    surface = contrastRatio("#000000", foreground) >= contrastRatio("#ffffff", foreground) ? "#000000" : "#ffffff"
+  var desired = clamp(requestedAlpha, 0, 1)
+  function score(alpha) {
+    var dark=compositeColor(surface,"#000000",alpha),light=compositeColor(surface,"#ffffff",alpha)
+    var luminance=relativeLuminance(foreground)
+    if(luminance>=relativeLuminance(dark)&&luminance<=relativeLuminance(light))return 1
+    return Math.min(contrastRatio(foreground,dark),contrastRatio(foreground,light))
+  }
+  var lo=desired, hi=1
+  if(score(lo)<4.5) {
+    for(var i=0;i<18;i++) { var mid=(lo+hi)/2; if(score(mid)>=4.5) hi=mid; else lo=mid }
+    lo=hi
+  }
+  return {surface:surface,foreground:foreground,alpha:lo,contrast:score(lo)}
+}
+function mergeSettings(settings, changes) {
+  var result = {}
+  function merge(source) {
+    if(!source || typeof source!=="object") return
+    Object.keys(source).forEach(function(key) {
+      if(key!=="__proto__" && key!=="constructor" && key!=="prototype") result[key]=source[key]
+    })
+  }
+  merge(settings); merge(changes); return result
+}
 function visibleAlpha(opacity, floor) {
   var minimum = clamp(floor, 0, 1)
   var adjusted = clamp(opacity, 0, 100) / 100
@@ -247,14 +291,8 @@ function settingsObject(preset, appearance, profiles) {
 
 function resolvedState(settings) {
   var source = settings && typeof settings === "object" ? settings : {}
-  var legacyGlass = String(source.preset || "").replace(/^\s+|\s+$/g, "").toLowerCase() === "glass"
   var preset = normalizePreset(source.preset)
   var profiles = profilesFor(source)
-  if (legacyGlass) {
-    var migrated = normalizeAppearance(source, styleDefaults(preset))
-    profiles[preset] = migrated
-    return { preset: preset, appearance: migrated, profiles: profiles }
-  }
   var marked = Number(source.profileVersion) === PROFILE_VERSION
     && PRESETS.indexOf(String(source.activeProfile || "").toLowerCase()) !== -1
   var activeProfile = marked ? normalizePreset(source.activeProfile) : preset
@@ -294,7 +332,7 @@ function switchPreset(settings, value) {
   var appearance = state.profiles[preset]
     ? state.profiles[preset]
     : styleDefaults(preset)
-  return settingsObject(preset, appearance, state.profiles)
+  return mergeSettings(settings, settingsObject(preset, appearance, state.profiles))
 }
 
 function updateAppearance(settings, values) {
@@ -309,13 +347,13 @@ function updateAppearance(settings, values) {
   }
   var appearance = normalizeAppearance(merged, styleDefaults(state.preset))
   state.profiles[state.preset] = appearance
-  return settingsObject(state.preset, appearance, state.profiles)
+  return mergeSettings(settings, settingsObject(state.preset, appearance, state.profiles))
 }
 
 function resetPreset(settings) {
   var state = resolvedState(settings)
   delete state.profiles[state.preset]
-  return settingsObject(state.preset, styleDefaults(state.preset), state.profiles)
+  return mergeSettings(settings, settingsObject(state.preset, styleDefaults(state.preset), state.profiles))
 }
 
 function visibleWidgets(items, controllerId) {
@@ -330,8 +368,8 @@ function visibleWidgets(items, controllerId) {
 
 function findEntry(config, id) {
   var source = config && typeof config === "object" ? config : {}
-  var layout = source.bar && source.bar.layout && typeof source.bar.layout === "object"
-    ? source.bar.layout : {}
+  var bar = source.bar || source
+  var layout = bar.layout && typeof bar.layout === "object" ? bar.layout : {}
   var sections = ["left", "center", "right"]
   for (var s = 0; s < sections.length; s++) {
     var entries = layout[sections[s]]
@@ -461,7 +499,7 @@ function pillItems(items, controllerId, axis) {
       })
     }
     expanded = uniqueByPosition(expanded, axis)
-    if (expanded.length > 1) {
+    if (expanded.length > 0) {
       for (var e = 0; e < expanded.length; e++) result.push(expanded[e])
     } else {
       result.push(item)
@@ -543,6 +581,9 @@ function accentRects(rects, position, thickness) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
+    styleSurface: styleSurface,
+    fixedForegroundPlan: fixedForegroundPlan,
+    mergeSettings: mergeSettings,
     PRESETS: PRESETS,
     PAINT_RECIPES: PAINT_RECIPES,
     STYLE_DEFAULTS: STYLE_DEFAULTS,

@@ -15,7 +15,7 @@ const widgets = [
 test('normalizes every selectable chrome preset and safely falls back to islands', () => {
   assert.equal(RiceModel.normalizePreset('omarchy'), 'omarchy');
   assert.equal(RiceModel.normalizePreset('PILLS'), 'pills');
-  assert.equal(RiceModel.normalizePreset(' Glass '), 'islands');
+  assert.equal(RiceModel.normalizePreset(' Glass '), 'glass');
   assert.equal(RiceModel.normalizePreset('MATERIAL'), 'material');
   assert.equal(RiceModel.normalizePreset('outline'), 'outline');
   assert.equal(RiceModel.normalizePreset('rail'), 'rail');
@@ -74,7 +74,7 @@ test('visible alpha preserves adjustment while enforcing wallpaper-safe contrast
 });
 
 test('paint recipes keep geometry separate from visual decoration', () => {
-  assert.equal(RiceModel.paintRecipe('glass').decoration, 'surface');
+  assert.equal(RiceModel.paintRecipe('glass').decoration, 'glass');
   assert.equal(RiceModel.paintRecipe('pills').geometry, 'widgets');
   assert.equal(RiceModel.paintRecipe('rail').decoration, 'rail');
   assert.equal(RiceModel.paintRecipe('bracket').fill, 'none');
@@ -96,14 +96,14 @@ test('every style has inspiration-based appearance defaults', () => {
   assert.deepEqual(RiceModel.styleDefaults('islands'), { opacity: 92, radius: 12, gap: 4, border: true });
   assert.deepEqual(RiceModel.styleDefaults('pills'), { opacity: 90, radius: 18, gap: 3, border: true });
   assert.deepEqual(RiceModel.styleDefaults('material'), { opacity: 92, radius: 20, gap: 8, border: false });
-  assert.deepEqual(RiceModel.styleDefaults('glass'), { opacity: 92, radius: 12, gap: 4, border: true });
+  assert.deepEqual(RiceModel.styleDefaults('glass'), { opacity: 72, radius: 12, gap: 6, border: true });
   assert.deepEqual(RiceModel.styleDefaults('outline'), { opacity: 20, radius: 14, gap: 6, border: true });
-  assert.deepEqual(RiceModel.styleDefaults('rail'), { opacity: 60, radius: 0, gap: 4, border: false });
+  assert.deepEqual(RiceModel.styleDefaults('rail'), { opacity: 60, radius: 0, gap: 4, border: true });
   assert.deepEqual(RiceModel.styleDefaults('bracket'), { opacity: 20, radius: 0, gap: 8, border: true });
   assert.deepEqual(RiceModel.styleDefaults('glow'), { opacity: 82, radius: 16, gap: 8, border: true });
   assert.deepEqual(RiceModel.styleDefaults('powerline'), { opacity: 92, radius: 0, gap: 6, border: true });
   assert.deepEqual(RiceModel.styleDefaults('mono'), { opacity: 96, radius: 2, gap: 3, border: true });
-  assert.deepEqual(RiceModel.styleDefaults('minimal'), { opacity: 55, radius: 0, gap: 2, border: false });
+  assert.deepEqual(RiceModel.styleDefaults('minimal'), { opacity: 55, radius: 0, gap: 2, border: true });
 });
 
 test('switching styles saves the current profile and loads unseen style defaults', () => {
@@ -172,17 +172,17 @@ test('resetting a style removes its saved profile and restores its defaults', ()
   assert.equal(settings.profiles.material, undefined);
 });
 
-test('legacy Glass settings migrate to Islands without retaining a selectable Glass profile', () => {
+test('Glass keeps its own saved profile and does not overwrite Islands', () => {
   const migrated = RiceModel.switchPreset({
     preset: 'glass', opacity: 76, radius: 17, gap: 9, border: false,
     profileVersion: 1, activeProfile: 'glass',
     profiles: { glass: { opacity: 64, radius: 18, gap: 8, border: true } }
   }, 'islands');
   assert.deepEqual(RiceModel.snapshot(migrated), {
-    preset: 'islands', opacity: 76, radius: 17, gap: 9, border: false
+    preset: 'islands', opacity: 92, radius: 12, gap: 4, border: true
   });
-  assert.equal(migrated.profiles.glass, undefined);
-  assert.equal(RiceModel.PRESETS.includes('glass'), false);
+  assert.deepEqual(migrated.profiles.glass, {opacity:76,radius:17,gap:9,border:false});
+  assert.equal(RiceModel.PRESETS.includes('glass'), true);
 });
 
 test('normalizes bounded appearance settings', () => {

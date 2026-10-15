@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.jcarcinogen.rice-bar",
   "name": "Rice Bar",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "author": "Scott Angel",
   "license": "MIT",
-  "description": "Theme-aware visual presets for the stock Omarchy bar. Rice Bar keeps omarchy.bar, its official logo, widgets, panels, gestures, layout, and behavior intact while drawing passive chrome behind it.",
+  "description": "A live style gallery for the stock Omarchy bar: 15 choices including Glass, Pixel, Bevel, and Ribbon. Customize each style, save and share looks, and follow your theme palette while keeping the native widgets and panels. Passive decoration inside the existing bar window—not a replacement shell.",
   "kinds": [
     "service",
     "bar-widget"
@@ -25,7 +25,10 @@
       "opacity": 92,
       "radius": 12,
       "gap": 4,
-      "border": true
+      "border": true,
+      "reducedMotion": true,
+      "showIcon": true,
+      "themeFollow": false
     },
     "schema": [
       {
@@ -43,7 +46,11 @@
           "Glow",
           "Powerline",
           "Mono",
-          "Minimal"
+          "Minimal",
+          "Glass",
+          "Pixel",
+          "Bevel",
+          "Ribbon"
         ],
         "defaultValue": "Islands",
         "description": "Omarchy restores the unmodified stock bar. Other styles draw passive theme-aware chrome behind its stock widgets."
@@ -80,6 +87,24 @@
         "type": "boolean",
         "label": "Accent border",
         "defaultValue": true
+      },
+      {
+        "key": "reducedMotion",
+        "type": "boolean",
+        "label": "Reduced motion",
+        "defaultValue": true
+      },
+      {
+        "key": "showIcon",
+        "type": "boolean",
+        "label": "Show rice bowl icon",
+        "defaultValue": true
+      },
+      {
+        "key": "themeFollow",
+        "type": "boolean",
+        "label": "Follow linked theme palettes",
+        "defaultValue": false
       }
     ]
   }
