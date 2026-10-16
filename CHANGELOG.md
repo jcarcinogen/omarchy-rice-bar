@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1 — 2026-10-15
+
+### Fixed
+
+- Replaced the saved-look name TextField with a native plain-text TextEdit wrapper to avoid eager Wayland clipboard payload reads on affected Qt builds, including while the page or panel is hidden.
+- Routed explicit keyboard paste in both name and JSON editors through a Python standard-library helper: 4 KiB / 32 KiB byte caps, strict UTF-8, one 1.5-second deadline, and child cleanup on helper destruction.
+- Blocked native middle-button paste, context-menu paste, and external text drops; retained typing, selection, navigation, copying, and multiline caret scrolling. Paste completions are rejected after editing, cursor/selection movement, focus loss, hide, or page/panel closure.
+- Preserved JSON whitespace and string contents. Oversized paste is rejected, not silently truncated. Added transport, lifecycle, source-contract, and native editing regressions.
+
 ## 0.5.0 — 2026-10-15
 
 ### Added

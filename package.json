@@ -1,6 +1,6 @@
 {
   "name": "omarchy-rice-bar",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "Tests for the Rice Bar Omarchy plugin",
   "scripts": {

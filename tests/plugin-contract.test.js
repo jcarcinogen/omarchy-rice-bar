@@ -25,7 +25,7 @@ test('runtime and preview share the same geometry decoration renderer and contra
  assert.doesNotMatch(source('RiceSurface.qml'),/MouseArea|TapHandler|Behavior on (x|y|width|height)/);
 });
 test('gallery labels and imported JSON remain plain text; command launch uses argv',()=>{
- assert.match(source('RicePanel.qml'),/textFormat:TextEdit\.PlainText/);assert.match(source('RiceButton.qml'),/textFormat:Text\.PlainText/);
+ assert.match(source('RiceTextEditor.qml'),/textFormat:\s*TextEdit\.PlainText/);assert.match(source('RiceButton.qml'),/textFormat:Text\.PlainText/);
  assert.match(source('RicePanel.qml'),/menuProcess.command=\["python3"/);assert.doesNotMatch(source('RicePanel.qml'),/bash|sh -c/);
 });
 test('status is based on attached geometry and actual paint counts, not selected style alone',()=>{

@@ -194,11 +194,11 @@ Panel {
               value:root.selectedLook||(root.looks.length?"Choose a saved look":"No saved looks yet")
               onChanged:function(value){root.selectedLook=value;for(var i=0;i<root.looks.length;i++)if(root.looks[i].id===value)nameField.text=root.looks[i].name}
             }
-            Controls.TextField {
-              id:nameField;objectName:"rice-look-name";width:parent.width;height:38;padding:9;placeholderText:"Name this look";maximumLength:48
-              color:root.foreground;placeholderTextColor:Qt.alpha(root.foreground,0.6);font.family:root.fontFamily
-              Accessible.name:"Look name";selectByMouse:true
-              background:Rectangle{radius:6;color:Qt.alpha(root.foreground,0.05);border.width:1;border.color:nameField.activeFocus?Color.accent:Qt.alpha(root.foreground,0.3)}
+            RiceTextEditor {
+              id:nameField;objectName:"rice-look-name";width:parent.width;height:38
+              placeholderText:"Name this look";maximumLength:48;accessibleName:"Look name"
+              pasteAllowed:root.opened&&root.page===2
+              onPasteFailed:function(message){root.notice=message}
             }
             RowLayout {
               width:parent.width
@@ -212,13 +212,12 @@ Panel {
               RiceButton{text:"Delete";Layout.fillWidth:true;enabled:!!root.selectedAppearance();onClicked:root.report(root.service.removeLook(root.selectedLook),"Deleted saved look — Undo is available")}
             }
             Text{width:parent.width;text:"Share portable JSON, not executable theme code. Import saves a new look without applying it. Save new also duplicates your current look.";wrapMode:Text.WordWrap;color:root.foreground;font.pixelSize:Style.font.caption}
-            Controls.TextArea {
-              id:shareText;objectName:"rice-share-json";width:parent.width;height:150;padding:9;clip:true
-              textFormat:TextEdit.PlainText;wrapMode:TextEdit.WrapAnywhere;selectByMouse:true
-              color:root.foreground;placeholderText:"Paste a Rice Bar look here (32 KiB maximum)";placeholderTextColor:Qt.alpha(root.foreground,0.6)
-              font.family:root.fontFamily;font.pixelSize:Style.font.caption
-              Accessible.name:"Import or export look JSON"
-              background:Rectangle{radius:6;color:Qt.alpha(root.foreground,0.05);border.width:1;border.color:shareText.activeFocus?Color.accent:Qt.alpha(root.foreground,0.3)}
+            RiceTextEditor {
+              id:shareText;objectName:"rice-share-json";width:parent.width;height:150
+              multiline:true;maximumLength:32768
+              placeholderText:"Paste a Rice Bar look here (32 KiB maximum)";accessibleName:"Import or export look JSON"
+              pasteAllowed:root.opened&&root.page===2
+              onPasteFailed:function(message){root.notice=message}
             }
             RowLayout {
               width:parent.width

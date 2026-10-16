@@ -1,4 +1,22 @@
-# Rice Bar 0.5.0 — release verification
+# Rice Bar — release verification
+
+## 0.5.1 clipboard repair
+
+The name TextField eagerly retrieved changed clipboard text on the Acer’s installed Qt 6.11.2. A native counting-MIME probe reproduced that read; permanent-read-only TextField and plain TextEdit did not retrieve the payload. Both editable Rice Bar fields now use the same plain TextEdit-based bounded-paste wrapper.
+
+- Private Wayland compositor: two actual RiceTextEditor instances, clipboard offer changes while open and hidden; **zero `wl_data_offer.receive` requests** before paste. The offer provider also recorded no payload reads.
+- Production helper against real foreign Wayland offers: small text accepted at both caps; 64 KiB rejected at 4 KiB and 32 KiB caps; delayed offers rejected in approximately 1.54 seconds. No owner clipboard was involved.
+- Native offscreen Qt/Quickshell editor tests: **31 assertions passed**, including keyboard routing, selection replacement, Unicode/plain markup, horizontal/multiline caret scrolling, caps, middle-click blocking, and stale-result rejection. Helper doubles exercise UI routing, not end-to-end owner-shell clipboard transfer. One initial fixture run timed out; two subsequent full runs passed.
+- Python suites on Acer: **29 tests passed**, including Linux helper-parent-death cleanup.
+- `qmllint` exit 0; host-type/unqualified-access warnings remain. Manifest validation passed for candidate and installed directory.
+- Node suites: **79 tests passed**.
+- Installed 0.5.1 after backing up 0.5.0; shell restart, native panel open/close, file-hash checks and keyboard-layer cleanup passed. The first attempt was correctly blocked by the locked session; testing resumed only after the owner unlocked it.
+- **73 live UI checks passed**, covering all gallery cards and contrast, slider keyboard input, saved-look CRUD, JSON import, Undo/Redo, Escape with editor focus, hidden-icon reopening, palette links, and stock clock/audio clicks. The initial visual test correctly observed stock transparency pausing decoration; the fixture was updated to temporarily disable transparency, then restore the exact original shell configuration.
+- Protected shell/menu/keybinding file hashes match their pre-deployment values after all testing. Independent source review reported no additional findings.
+
+Reproduce native component tests on Omarchy using `python3 -B tests/run_native_clipboard.py`; the runner uses an isolated offscreen runtime and installed Commons, not the owner clipboard. Private-compositor sources, exact logs, and release evidence are retained in the established Rice Bar release evidence folder. Real input-method composition and physical user typing have not been newly tested.
+
+## 0.5.0 visual release baseline
 
 Tested on **Omarchy 4.0.4-1 / Quickshell 0.3.1-1**, with Hyprland 0.56.2. Native tests ran on a real Omarchy desktop; virtual-pointer input is distinguished from physical owner testing below.
 

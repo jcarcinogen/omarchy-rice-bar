@@ -91,6 +91,8 @@ The hidden bar entry must stay installed: it owns the stock-window decoration. A
 
 Portable look JSON contains only a name and validated appearance values—no commands, file paths, remote images, or executable theme code. Imports are limited to 32 KiB; there are up to 32 saved looks and 32 palette links. Names are limited to 48 characters.
 
+Both editors use native plain-text editing without eager clipboard payload reads. **Ctrl+V** and **Shift+Insert** request an isolated paste bounded to 4 KiB for names or 32 KiB for JSON, with one 1.5-second transport deadline. Oversized, slow, unavailable, or stale results are skipped. Middle-button paste, native context-menu paste, and external text drops are intentionally unsupported. Normal selection, typing, navigation, and **Copy current look** remain available. The helper uses Python 3 and `wl-paste`, both present on the tested standard Omarchy installation.
+
 **Link current look** associates the current appearance with the theme's color palette and enables following. Returning to that palette restores the linked look. Unlinked palettes keep the current appearance. Themes with identical colors share a link; this is not theme-name matching.
 
 Appearance settings, saved looks, and links stay inline on Rice Bar's `shell.json` entry. Undo/Redo is session-local and bounded; it resets on shell restart. The optional menu row is the only separate user configuration edited by Rice Bar.

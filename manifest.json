@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.jcarcinogen.rice-bar",
   "name": "Rice Bar",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "author": "Scott Angel",
   "license": "MIT",
   "description": "A live style gallery for the stock Omarchy bar: 15 choices including Glass, Pixel, Bevel, and Ribbon. Customize each style, save and share looks, and follow your theme palette while keeping the native widgets and panels. Passive decoration inside the existing bar window—not a replacement shell.",
