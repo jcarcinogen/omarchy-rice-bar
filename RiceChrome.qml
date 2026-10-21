@@ -13,12 +13,16 @@ Item {
   property var service: null
   property var widgetGeometry: []
   property string geometrySignature: ""
+  // The cards are re-synced in the frame the host reflows: see check().
+  property var slotItems: []
+  property double slotExtent: 0
   readonly property var live: service ? service.live : RiceModel.snapshot({})
   readonly property string position: facade ? facade.position : "top"
   readonly property bool vertical: position === "left" || position === "right"
   readonly property bool hidden: !facade || (facade.shell && facade.shell.bar && facade.shell.bar.barHidden === true) || !hostWindow || !hostWindow.visible
   readonly property bool stockTransparent: facade ? facade.transparent === true : false
   readonly property bool supported: facade && facade.shell && facade.shell.barConfig && (!facade.shell.barConfig.id || facade.shell.barConfig.id === "omarchy.bar")
+  readonly property bool sampling: supported && !hidden && !stockTransparent && live.preset!=="omarchy"
   readonly property var recipe: RiceModel.paintRecipe(live.preset)
   readonly property color nativeForeground: facade ? facade.foreground : Color.bar.text
   readonly property var contrastPlan: RiceModel.fixedForegroundPlan(RiceModel.styleSurface(Color.bar.background,Color.accent,live.preset),nativeForeground,RiceModel.visibleAlpha(live.opacity,0.32))
@@ -39,6 +43,30 @@ Item {
   clip: true
   visible: supported && !hidden && !stockTransparent && live.preset!=="omarchy" && paintRects.length>0
 
+  // Rebuilt on attach and once a second: the flat list of host slots whose boxes
+  // check() reads every frame.
+  function watch() {
+    if(!hostWindow || !hostWindow.contentItem) return
+    slotItems=HostGeometry.collectSlots(hostWindow.contentItem)
+    slotExtent=extentOf(slotItems)
+    sample()
+  }
+  // One number over the boxes the host itself lays out. Reading it is cheap
+  // enough to run on every frame, and the host moves these boxes in the same
+  // frame it reflows, so a change is noticed before that frame is painted.
+  function extentOf(items) {
+    var total=0
+    for(var i=0;i<items.length;i++)
+      total=total+Number(items[i].width)*1000+Number(items[i].x)
+    return total
+  }
+  function check() {
+    if(!sampling) return
+    var extent
+    try { extent=extentOf(slotItems) }
+    catch(error) { slotItems=[]; Qt.callLater(root.watch); return }
+    if(extent!==slotExtent){ slotExtent=extent; sample() }
+  }
   function sample() {
     if(!hostWindow || !hostWindow.contentItem || !supported || hidden || stockTransparent || live.preset==="omarchy") return
     var geometry=HostGeometry.snapshot(hostWindow.contentItem,vertical)
@@ -63,7 +91,19 @@ Item {
     when:root.visible
     restoreMode:Binding.RestoreBindingOrValue
   }
-  Timer { interval:100;repeat:true;running:root.supported&&!root.hidden&&!root.stockTransparent&&root.live.preset!=="omarchy";triggeredOnStart:true;onTriggered:root.sample() }
+  // A reflow is synchronous: a workspace, a tray icon or an indicator appearing
+  // widens one slot and moves every later slot in the same frame. Polling painted
+  // the cards from the layout the widgets had already left, so a new workspace
+  // showed the surface edges detached from them (the last icons of a group on the
+  // wallpaper, the next card starting under an icon). check() runs every frame and
+  // takes the expensive snapshot only when a slot box moved; the timer is a slow
+  // net for geometry that does not move a box.
+  Timer { interval:1000;repeat:true;running:root.sampling;triggeredOnStart:true;onTriggered:root.watch() }
+  FrameAnimation {
+    running:root.sampling
+    onTriggered:root.check()
+  }
+  Component.onCompleted: Qt.callLater(root.watch)
   onPositionChanged: Qt.callLater(root.sample)
   onLiveChanged: Qt.callLater(root.sample)
   Rectangle {
