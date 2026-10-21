@@ -55,6 +55,23 @@ function trayLeaves(slot, content, vertical) {
     return overlapX>r.width*.4 && overlapY>r.height*.4
   })
 }
+// Item references for the same leaves trayLeaves() records, without mapping them
+// into the content item. The tray reveals its drawer by sliding the chevron and
+// the icons inside its own slot, whose width never changes, so this is the only
+// cheap way to notice that the tray's painted box moved. Detection only, so a
+// duplicate by position is harmless here.
+function trayLeafRefs(slot) {
+  var result = [], budget = 256
+  function visit(item, depth) {
+    if (!item || depth > 10 || --budget < 0 || item.visible === false) return
+    var w = Number(item.width), h = Number(item.height)
+    if (w >= 20 && h >= 20 && Math.max(w, h) / Math.min(w, h) <= 1.65) result.push(item)
+    var kids = childrenOf(item)
+    for (var i = 0; i < kids.length; i++) visit(kids[i], depth + 1)
+  }
+  if (slot && slot.activeItem) visit(slot.activeItem, 0)
+  return result
+}
 function snapshot(content, vertical) {
   var slots=collectSlots(content), result=[]
   for(var i=0;i<slots.length;i++) {
@@ -65,4 +82,4 @@ function snapshot(content, vertical) {
   }
   return result
 }
-if(typeof module!=='undefined' && module.exports) module.exports={childrenOf:childrenOf,collectSlots:collectSlots,record:record,trayLeaves:trayLeaves,snapshot:snapshot}
+if(typeof module!=='undefined' && module.exports) module.exports={childrenOf:childrenOf,collectSlots:collectSlots,record:record,trayLeaves:trayLeaves,snapshot:snapshot,trayLeafRefs:trayLeafRefs}

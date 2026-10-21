@@ -15,6 +15,7 @@ Item {
   property string geometrySignature: ""
   // The cards are re-synced in the frame the host reflows: see check().
   property var slotItems: []
+  property var trayItems: []
   property double slotExtent: 0
   readonly property var live: service ? service.live : RiceModel.snapshot({})
   readonly property string position: facade ? facade.position : "top"
@@ -44,11 +45,15 @@ Item {
   visible: supported && !hidden && !stockTransparent && live.preset!=="omarchy" && paintRects.length>0
 
   // Rebuilt on attach and once a second: the flat list of host slots whose boxes
-  // check() reads every frame.
+  // check() reads every frame, plus the tray's own leaves.
   function watch() {
     if(!hostWindow || !hostWindow.contentItem) return
     slotItems=HostGeometry.collectSlots(hostWindow.contentItem)
-    slotExtent=extentOf(slotItems)
+    trayItems=[]
+    for(var i=0;i<slotItems.length;i++)
+      if(String(slotItems[i].moduleName)==="omarchy.tray")
+        trayItems=HostGeometry.trayLeafRefs(slotItems[i])
+    slotExtent=trackedExtent()
     sample()
   }
   // One number over the boxes the host itself lays out. Reading it is cheap
@@ -60,11 +65,17 @@ Item {
       total=total+Number(items[i].width)*1000+Number(items[i].x)
     return total
   }
+  // Slots plus the tray's own leaves: the tray slides its drawer chevron and icons
+  // inside a slot whose width never changes, so the slot boxes alone would miss
+  // that animation and leave the card frozen while the drawer moves.
+  function trackedExtent() {
+    return extentOf(slotItems)+extentOf(trayItems)
+  }
   function check() {
     if(!sampling) return
     var extent
-    try { extent=extentOf(slotItems) }
-    catch(error) { slotItems=[]; Qt.callLater(root.watch); return }
+    try { extent=trackedExtent() }
+    catch(error) { slotItems=[];trayItems=[]; Qt.callLater(root.watch); return }
     if(extent!==slotExtent){ slotExtent=extent; sample() }
   }
   function sample() {
